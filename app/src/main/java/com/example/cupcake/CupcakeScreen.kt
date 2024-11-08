@@ -15,6 +15,8 @@
  */
 package com.example.cupcake
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -47,10 +49,7 @@ import com.example.cupcake.ui.StartOrderScreen
 
 
 enum class CupcakeScreen() {
-    Start,
-    Flavor,
-    Pickup,
-    Summary
+    Start, Flavor, Pickup, Summary
 }
 
 /**
@@ -58,12 +57,9 @@ enum class CupcakeScreen() {
  */
 @Composable
 fun CupcakeAppBar(
-    canNavigateBack: Boolean,
-    navigateUp: () -> Unit,
-    modifier: Modifier = Modifier
+    canNavigateBack: Boolean, navigateUp: () -> Unit, modifier: Modifier = Modifier
 ) {
-    TopAppBar(
-        title = { Text(stringResource(id = R.string.app_name)) },
+    TopAppBar(title = { Text(stringResource(id = R.string.app_name)) },
         colors = TopAppBarDefaults.mediumTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
@@ -77,8 +73,7 @@ fun CupcakeAppBar(
                     )
                 }
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -87,14 +82,10 @@ fun CupcakeApp(
     navController: NavHostController = rememberNavController()
 ) {
 
-    Scaffold(
-        topBar = {
-            CupcakeAppBar(
-                canNavigateBack = false,
-                navigateUp = { /* TODO: implement back navigation */ }
-            )
-        }
-    ) { innerPadding ->
+    Scaffold(topBar = {
+        CupcakeAppBar(canNavigateBack = false,
+            navigateUp = { /* TODO: implement back navigation */ })
+    }) { innerPadding ->
 
         val uiState by viewModel.uiState.collectAsState()
 
@@ -124,8 +115,7 @@ fun CupcakeApp(
                     onNextButtonClicked = { navController.navigate(route = CupcakeScreen.Pickup.name) },
                     onCancelButtonClicked = {
                         cancelOrderAndNavigateToStart(
-                            viewModel = viewModel,
-                            navController = navController
+                            viewModel = viewModel, navController = navController
                         )
                     },
                     modifier = Modifier.fillMaxHeight()
@@ -139,21 +129,22 @@ fun CupcakeApp(
                     onNextButtonClicked = { navController.navigate(CupcakeScreen.Summary.name) },
                     onCancelButtonClicked = {
                         cancelOrderAndNavigateToStart(
-                            viewModel = viewModel,
-                            navController = navController
+                            viewModel = viewModel, navController = navController
                         )
                     },
                     modifier = Modifier.fillMaxHeight()
                 )
             }
             composable(route = CupcakeScreen.Summary.name) {
+                val context = LocalContext.current
                 OrderSummaryScreen(
                     orderUiState = uiState,
-                    onSendButtonClicked = { subject: String, order: String -> },
+                    onSendButtonClicked = { subject: String, summary: String ->
+                        shareOrder(context = context, subject, summary)
+                    },
                     onCancelButtonClicked = {
                         cancelOrderAndNavigateToStart(
-                            viewModel = viewModel,
-                            navController = navController
+                            viewModel = viewModel, navController = navController
                         )
                     },
                     modifier = Modifier.fillMaxHeight()
@@ -167,4 +158,20 @@ fun CupcakeApp(
 fun cancelOrderAndNavigateToStart(viewModel: OrderViewModel, navController: NavHostController) {
     viewModel.resetOrder()
     navController.popBackStack(CupcakeScreen.Start.name, false)
+}
+
+private fun shareOrder(context: Context, subject: String, summary: String) {
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, summary)
+    }
+
+    context.startActivity(
+        Intent.createChooser(
+            intent, context.getString(R.string.new_cupcake_order)
+        )
+    )
+
 }
